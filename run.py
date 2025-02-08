@@ -1,43 +1,7 @@
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
+import altair as alt
 import os
-from io import BytesIO
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-
-# 新增生成PDF文件功能
-def generate_pdf(content, chart_images):
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-
-    c.drawString(100, height - 100, "题目分析报告")
-    y_position = height - 120
-    for line in content:
-        c.drawString(100, y_position, line)
-        y_position -= 20
-
-    # 插入图表
-    for img in chart_images:
-        c.drawImage(img, 100, y_position, width=400, height=300)
-        y_position -= 320  # Adjust y position after each image
-
-    c.save()
-    buffer.seek(0)
-    return buffer
-
-# 新增生成图表并保存为图片功能
-def save_chart_as_image(data, filename):
-    plt.figure(figsize=(6, 4))
-    plt.barh(data['答案'], data['出现次数'], color='red')
-    plt.title('错误答案统计')
-    plt.xlabel('出现次数')
-    plt.ylabel('答案')
-
-    # 保存为PNG图片
-    plt.savefig(filename, format='png')
-    plt.close()
 
 # 设置页面标题
 st.title("题目分析")
@@ -80,7 +44,6 @@ if file_list:
 
     results = []
     i = 1
-    chart_images = []  # 保存生成的图表图片
 
     while True:
         answer_col = f'回答{i}'  # 动态生成回答列名
@@ -139,7 +102,6 @@ if file_list:
         st.sidebar.markdown(question_link)
 
     # 显示选择的题目统计
-    content = []  # 用于PDF的内容
     for res in sorted_results:
         st.markdown(f"<a id='{res['题号']}'></a>", unsafe_allow_html=True)  # 创建锚点
         st.subheader(f"第{res['题号']}题")
@@ -148,22 +110,20 @@ if file_list:
         st.write(f"答题人数: {res['答题人数']}")
         st.write(f"正确率: {res['正确率']:.2f}%")
 
-        content.append(f"第{res['题号']}题")
-        content.append(f"题目: {res['试题']}")
-        content.append(f"标准答案: {res['标准答案']}")
-        content.append(f"答题人数: {res['答题人数']}")
-        content.append(f"正确率: {res['正确率']:.2f}%")
-
         if not res['错误答案统计'].empty:
             st.write("#### 错误答案统计")
             
             # 从上往下的柱形图
             error_stats = res['错误答案统计']
-            save_chart_as_image(error_stats, f"chart_{res['题号']}.png")
-            chart_images.append(f"chart_{res['题号']}.png")  # 添加图表图片到图像列表
+            bar_chart = alt.Chart(error_stats).mark_bar(color='red').encode(
+                y=alt.Y('答案', sort='-x'),
+                x='出现次数',
+                tooltip=['答案', '出现次数', '学生']
+            ).properties(
+                title=''
+            )
 
-            # 显示图表
-            st.pyplot()
+            st.altair_chart(bar_chart, use_container_width=True)
 
             # 列出所有错误答案
             for _, row in error_stats.iterrows():
@@ -172,11 +132,6 @@ if file_list:
                 st.write(f"出现次数: {row['出现次数']}")
                 st.write(f"学生: {row['学生']}")
                 st.write("")  # 添加空行
-
-    # 提供下载按钮
-    if st.button("下载报告为PDF"):
-        pdf_buffer = generate_pdf(content, chart_images)
-        st.download_button("下载PDF", pdf_buffer, "analysis_report.pdf", mime="application/pdf")
 
     st.success("统计完成！")
 
