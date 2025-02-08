@@ -2,9 +2,39 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 import os
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from weasyprint import HTML
+
+# 新增生成PDF文件功能
+def generate_pdf(content, chart_images):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    c.drawString(100, height - 100, "题目分析报告")
+    y_position = height - 120
+    for line in content:
+        c.drawString(100, y_position, line)
+        y_position -= 20
+
+    # 插入图表
+    for img in chart_images:
+        c.drawImage(img, 100, y_position, width=400, height=300)
+        y_position -= 320  # Adjust y position after each image
+
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+# 新增生成图表并保存为图片功能
+def save_chart_as_image(chart, filename):
+    chart.save(filename, format='png')
 
 # 设置页面标题
 st.title("题目分析")
+st.markdown("<p style='text-align: left; color: red;'>读取数据会很慢，请耐心等待。右上角有个小人在动，就表示正在运行。点击右上角的三点图标，还可以进行一些设置，比如设置为宽屏。</p>", unsafe_allow_html=True)
 
 # 自动读取当前目录下所有的xlsx文件
 file_list = [f for f in os.listdir() if f.endswith('.xlsx')]
@@ -43,6 +73,7 @@ if file_list:
 
     results = []
     i = 1
+    chart_images = []  # 保存生成的图表图片
 
     while True:
         answer_col = f'回答{i}'  # 动态生成回答列名
@@ -101,6 +132,7 @@ if file_list:
         st.sidebar.markdown(question_link)
 
     # 显示选择的题目统计
+    content = []  # 用于PDF的内容
     for res in sorted_results:
         st.markdown(f"<a id='{res['题号']}'></a>", unsafe_allow_html=True)  # 创建锚点
         st.subheader(f"第{res['题号']}题")
@@ -109,30 +141,7 @@ if file_list:
         st.write(f"答题人数: {res['答题人数']}")
         st.write(f"正确率: {res['正确率']:.2f}%")
 
-        if not res['错误答案统计'].empty:
-            st.write("#### 错误答案统计")
-            
-            # 从上往下的柱形图
-            error_stats = res['错误答案统计']
-            bar_chart = alt.Chart(error_stats).mark_bar(color='red').encode(
-                y=alt.Y('答案', sort='-x'),
-                x='出现次数',
-                tooltip=['答案', '出现次数', '学生']
-            ).properties(
-                title=''
-            )
-
-            st.altair_chart(bar_chart, use_container_width=True)
-
-            # 列出所有错误答案
-            for _, row in error_stats.iterrows():
-                color = 'green' if row['答案'] == res['标准答案'] else 'red'
-                st.markdown(f"<div style='color:black;'>答案: <span style='color:{color};'>{row['答案']}</span></div>", unsafe_allow_html=True)
-                st.write(f"出现次数: {row['出现次数']}")
-                st.write(f"学生: {row['学生']}")
-                st.write("")  # 添加空行
-
-    st.success("统计完成！")
-
-else:
-    st.error("当前目录下没有找到任何xlsx文件。")
+        content.append(f"第{res['题号']}题")
+        content.append(f"题目: {res['试题']}")
+        content.append(f"标准答案: {res['标准答案']}")
+        content.append(f"答题人数: {
