@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-import altair as alt
+import matplotlib.pyplot as plt
 import os
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
@@ -28,8 +28,16 @@ def generate_pdf(content, chart_images):
     return buffer
 
 # 新增生成图表并保存为图片功能
-def save_chart_as_image(chart, filename):
-    chart.save(filename, format='png')
+def save_chart_as_image(data, filename):
+    plt.figure(figsize=(6, 4))
+    plt.barh(data['答案'], data['出现次数'], color='red')
+    plt.title('错误答案统计')
+    plt.xlabel('出现次数')
+    plt.ylabel('答案')
+
+    # 保存为PNG图片
+    plt.savefig(filename, format='png')
+    plt.close()
 
 # 设置页面标题
 st.title("题目分析")
@@ -151,20 +159,11 @@ if file_list:
             
             # 从上往下的柱形图
             error_stats = res['错误答案统计']
-            bar_chart = alt.Chart(error_stats).mark_bar(color='red').encode(
-                y=alt.Y('答案', sort='-x'),
-                x='出现次数',
-                tooltip=['答案', '出现次数', '学生']
-            ).properties(
-                title='错误答案统计'
-            )
+            save_chart_as_image(error_stats, f"chart_{res['题号']}.png")
+            chart_images.append(f"chart_{res['题号']}.png")  # 添加图表图片到图像列表
 
-            # 保存图表为图片
-            img_filename = f"chart_{res['题号']}.png"
-            save_chart_as_image(bar_chart, img_filename)
-            chart_images.append(img_filename)  # 添加图表图片到图像列表
-
-            st.altair_chart(bar_chart, use_container_width=True)
+            # 显示图表
+            st.pyplot()
 
             # 列出所有错误答案
             for _, row in error_stats.iterrows():
