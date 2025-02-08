@@ -84,12 +84,12 @@ if file_list:
         i += 1  # 处理下一道题
 
     # 添加排序选项
-    sort_option = st.selectbox("选择排序方式:", ["原本顺序", "正确率升序", "正确率降序"])
+    sort_option = st.selectbox("选择排序方式:", ["按照题目原本顺序", "按照正确率升序", "按照正确率降序"])
 
     # 根据选择的排序方式进行排序
-    if sort_option == "正确率升序":
+    if sort_option == "按照正确率升序":
         sorted_results = sorted(results, key=lambda x: x['正确率'])
-    elif sort_option == "正确率降序":
+    elif sort_option == "按照正确率降序":
         sorted_results = sorted(results, key=lambda x: x['正确率'], reverse=True)
     else:
         sorted_results = results  # 保持原本顺序
