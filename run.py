@@ -144,4 +144,43 @@ if file_list:
         content.append(f"第{res['题号']}题")
         content.append(f"题目: {res['试题']}")
         content.append(f"标准答案: {res['标准答案']}")
-        content.append(f"答题人数: {
+        content.append(f"答题人数: {res['答题人数']}")
+        content.append(f"正确率: {res['正确率']:.2f}%")
+
+        if not res['错误答案统计'].empty:
+            st.write("#### 错误答案统计")
+            
+            # 从上往下的柱形图
+            error_stats = res['错误答案统计']
+            bar_chart = alt.Chart(error_stats).mark_bar(color='red').encode(
+                y=alt.Y('答案', sort='-x'),
+                x='出现次数',
+                tooltip=['答案', '出现次数', '学生']
+            ).properties(
+                title='错误答案统计'
+            )
+
+            # 保存图表为图片
+            img_filename = f"chart_{res['题号']}.png"
+            save_chart_as_image(bar_chart, img_filename)
+            chart_images.append(img_filename)  # 添加图表图片到图像列表
+
+            st.altair_chart(bar_chart, use_container_width=True)
+
+            # 列出所有错误答案
+            for _, row in error_stats.iterrows():
+                color = 'green' if row['答案'] == res['标准答案'] else 'red'
+                st.markdown(f"<div style='color:black;'>答案: <span style='color:{color};'>{row['答案']}</span></div>", unsafe_allow_html=True)
+                st.write(f"出现次数: {row['出现次数']}")
+                st.write(f"学生: {row['学生']}")
+                st.write("")  # 添加空行
+
+    # 提供下载按钮
+    if st.button("下载报告为PDF"):
+        pdf_buffer = generate_pdf(content, chart_images)
+        st.download_button("下载PDF", pdf_buffer, "analysis_report.pdf", mime="application/pdf")
+
+    st.success("统计完成！")
+
+else:
+    st.error("当前目录下没有找到任何xlsx文件。")
