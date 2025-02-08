@@ -5,7 +5,6 @@ import os
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from weasyprint import HTML
 
 # 新增生成PDF文件功能
 def generate_pdf(content, chart_images):
