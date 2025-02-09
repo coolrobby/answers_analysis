@@ -56,7 +56,7 @@ if file_list:
         result.columns = ['答案', '出现次数']
 
         # 添加学生列
-        result['学生'] = result['答案'].apply(lambda x: ', '.join(df[df[answer_col] == x]['姓氏'] + df[df[answer_col] == x]['名']))
+        result['学生'] = result['答案'].apply(lambda x: ', '.join(df[df[answer_col] == x]['姓氏'].astype(str) + df[df[answer_col] == x]['名'].astype(str)))
 
         standard_answer_col = f'标准答案{i}'  # 动态生成标准答案列名
         
